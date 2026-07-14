@@ -10,11 +10,12 @@ interface Classification {
 
 const PROMPT =
   "This is a horizontal crop of guitar sheet music (a standard-notation staff above a TAB " +
-  "block of string lines with numbers). At the very start of the staff a small number prints " +
-  "the measure/bar number of the first bar shown in this line — read it. Also decide whether " +
-  "this crop is actually readable sheet music (not a title card, intro, or the performer only). " +
-  'Respond with ONLY JSON: {"isTab": boolean, "bar": integer | null}. Set bar to null if you '+
-  "cannot read a bar number.";
+  "block of string lines with numbers). Read the measure/bar number printed at the FAR LEFT " +
+  "edge of the staff — the number above or before the very first (leftmost) measure. Read only " +
+  "that leftmost number; do NOT report a number from a measure further along the line. If the " +
+  "leftmost measure has no printed number (common on the opening line of a piece), set bar to " +
+  "null. Also decide whether this crop is actually readable sheet music (not a title card, " +
+  'intro, or the performer only). Respond with ONLY JSON: {"isTab": boolean, "bar": integer | null}.';
 
 async function encode(path: string): Promise<string> {
   const buf = await sharp(path)
@@ -86,22 +87,25 @@ export async function dedupeByBar(
   const kept: string[] = [];
   let droppedNonTab = 0;
   let droppedDup = 0;
+  let lastBar = 0; // 0 = we haven't read a real bar number yet
 
   for (const r of results) {
     if (!r.isTab) {
       droppedNonTab++;
       continue;
     }
-    if (r.bar === null) {
-      kept.push(r.path);
-      continue;
-    }
-    if (seenBars.has(r.bar)) {
+    // Scores usually omit the bar number on the opening line (it's bar 1) and
+    // occasionally on a frame that's mid-transition. Treat a missing number as
+    // the current line — bar 1 at the very start, otherwise the last bar we saw
+    // — so those frames dedup instead of each becoming its own page.
+    const bar = r.bar ?? (lastBar > 0 ? lastBar : 1);
+    if (seenBars.has(bar)) {
       droppedDup++;
       continue;
     }
-    seenBars.add(r.bar);
+    seenBars.add(bar);
     kept.push(r.path);
+    lastBar = bar;
   }
 
   log.success(

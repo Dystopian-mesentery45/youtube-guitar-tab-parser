@@ -69,12 +69,17 @@ Everything has a sensible default; you normally only need the URL.
 
 1. **Download** — `yt-dlp` fetches the video (≤ `--max-height`).
 2. **Frames** — `ffmpeg` extracts one frame every `--interval` seconds.
-3. **Detect** — a labeled horizontal-band grid is drawn on `--sample` frames and
-   Claude vision reports which bands contain sheet music. The median first/last
-   music band (robust to an outlier) gives the vertical extent; width is kept full.
-   (Coarse labeled bands are far more reliable than asking a vision model for
-   precise pixel coordinates.)
-4. **Crop** — `sharp` crops every frame to that region.
+3. **Detect** — two stages, since vision models are reliable at picking labeled
+   regions but not at precise pixel coordinates:
+   - A labeled row/column grid is drawn on `--sample` frames and Claude vision
+     reports which rows and columns the sheet music overlaps. The per-edge median
+     across samples gives a coarse box (works whether the tab is a full-width
+     bottom strip or a corner overlay).
+   - That box is then snapped to the actual paper edges with an image mask
+     (sheet music is dark content on a light, unsaturated background, unlike the
+     colourful performer/backdrop), so the crop hugs the tab tightly. If no clear
+     paper region is found (e.g. a dark-themed tab viewer), the vision box is used.
+4. **Crop** — `sharp` crops every frame to that box.
 5. **Pre-dedup** — a dHash perceptual hash drops near-identical consecutive crops.
    This is only a cost control to reduce the number of vision calls in the next step.
 6. **Bar-number dedup** — Claude reads the measure/bar number printed at the start
